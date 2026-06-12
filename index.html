@@ -4,91 +4,512 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-<title>Proto-Kit</title>
+<title>Proto-Kit Builder</title>
 <style>
-  body{
-    margin:0;background:#0d0d0f;color:#eee;
-    font:15px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;
-    padding:48px 24px 80px;
+  :root{
+    --bg:#0d0d0f; --panel:#16161a; --panel-2:#1d1d22;
+    --border:#26262b; --border-strong:#3a3a40;
+    --text:#eee; --text-dim:#888; --text-dimmer:#666;
+    --accent:#22c55e; --accent-2:#3b82f6;
   }
-  .wrap{max-width:680px;margin:0 auto;}
-  h1{font-size:30px;margin:0 0 8px;letter-spacing:-.3px;}
-  .lead{color:#aaa;margin:0 0 36px;font-size:15px;}
-  h2{font-size:12px;color:#8a8a8a;text-transform:uppercase;letter-spacing:.1em;margin:36px 0 10px;font-weight:600;}
-  a.card{
-    display:block;padding:14px 16px;background:#1a1a1c;border:1px solid #2a2a2d;
-    border-radius:10px;color:#fff;text-decoration:none;margin-bottom:8px;
-    transition:border-color .15s ease, transform .1s ease;
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;}
+
+  header{
+    padding:16px 24px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--panel);
+    position:sticky; top:0; z-index:10;
   }
-  a.card:hover{border-color:#555;}
-  a.card .ttl{font-weight:600;font-size:15px;}
-  a.card .sub{color:#888;font-size:13px;margin-top:3px;}
-  code{background:#222;padding:1.5px 6px;border-radius:4px;font-size:13px;font-family:ui-monospace,Menlo,monospace;}
-  pre{
-    background:#16161a;padding:12px 14px;border-radius:8px;overflow:auto;
-    font-size:12.5px;font-family:ui-monospace,Menlo,monospace;line-height:1.55;margin:0 0 8px;
+  header .brand{display:flex; align-items:center; gap:10px;}
+  header h1{font-size:16px; margin:0; font-weight:700; letter-spacing:-.01em;}
+  header .sub{color:var(--text-dim); font-size:12px;}
+  header .logo{
+    width:28px;height:28px;border-radius:7px;
+    background:linear-gradient(135deg,#22c55e,#3b82f6);
+    display:flex;align-items:center;justify-content:center; color:#000; font-weight:800;
   }
-  ul{margin:0;padding-left:20px;}
-  li{margin-bottom:4px;color:#bbb;}
-  li code{font-size:12px;}
-  .pill{
-    display:inline-block;background:#222;color:#ccc;font-size:11px;
-    padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;letter-spacing:.02em;
+  header .actions{display:flex; gap:8px;}
+  header button{
+    background:#222; color:#fff; border:1px solid var(--border-strong);
+    padding:7px 12px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
   }
+  header button:hover{background:#2a2a30;}
+  header button.primary{background:#fff; color:#000; border-color:#fff;}
+  header button.primary:hover{background:#eee;}
+
+  .wrap{
+    display:grid; grid-template-columns: minmax(360px, 1fr) 480px;
+    gap:24px; max-width:1280px; margin:0 auto; padding:24px;
+  }
+  @media (max-width: 980px){
+    .wrap{grid-template-columns: 1fr;}
+  }
+
+  /* Form */
+  .form{display:flex; flex-direction:column; gap:18px; min-width:0;}
+  .group{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px;
+  }
+  .group h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--text-dim); margin:0 0 12px; font-weight:700;
+  }
+  .row{display:grid; gap:10px;}
+  .row.two{grid-template-columns:1fr 1fr;}
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:12px; color:var(--text-dim);}
+  .field .hint{font-size:11px; color:var(--text-dimmer); margin-top:2px;}
+  input[type="text"], input[type="url"], textarea, select{
+    background:var(--panel-2); color:#fff; border:1px solid var(--border-strong);
+    padding:9px 11px; border-radius:6px; font:inherit;
+    font-size:13.5px; width:100%; outline:none;
+  }
+  input:focus, textarea:focus, select:focus{border-color:var(--accent-2);}
+  textarea{resize:vertical; min-height:60px;}
+  input[type="color"]{
+    width:44px; height:36px; padding:0; border:1px solid var(--border-strong);
+    border-radius:6px; background:transparent; cursor:pointer;
+  }
+  .color-row{display:flex; align-items:center; gap:8px;}
+  .color-row input[type="text"]{flex:1; font-family:ui-monospace,Menlo,monospace; font-size:12.5px;}
+
+  /* Custom lists rows */
+  .list-rows{display:flex; flex-direction:column; gap:8px;}
+  .lr{
+    display:grid; grid-template-columns: 36px 1fr 28px; gap:8px; align-items:center;
+  }
+  .lr input[type="color"]{width:36px;height:36px;}
+  .lr .del{
+    background:transparent; color:var(--text-dimmer); border:1px solid var(--border);
+    border-radius:6px; padding:6px; cursor:pointer;
+  }
+  .lr .del:hover{color:#f87171; border-color:#3a2222;}
+  .add-list{
+    background:transparent; color:var(--accent); border:1px dashed var(--border-strong);
+    padding:9px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .add-list:hover{border-color:var(--accent);}
+
+  /* Preview */
+  .preview{position:sticky; top:88px; align-self:start;}
+  .preview .frame{
+    width:100%; max-width:480px;
+    aspect-ratio: 480/920;
+    border:0;
+    border-radius:14px; background:#000;
+  }
+  .preview-meta{
+    color:var(--text-dim); font-size:12px; margin-top:10px; text-align:center;
+  }
+  .preview-meta b{color:#fff; font-weight:600;}
+
+  /* Toast (builder) */
+  .builder-toast{
+    position:fixed; left:50%; transform:translate(-50%, 30px);
+    bottom:32px; background:#1a1a1f; color:#fff;
+    padding:11px 16px; border-radius:8px; font-size:13px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.5);
+    border:1px solid var(--border-strong);
+    opacity:0; transition: opacity .2s, transform .2s; z-index:80;
+    display:flex; align-items:center; gap:8px;
+  }
+  .builder-toast.show{opacity:1; transform:translate(-50%, 0);}
+
+  .help{
+    font-size:11.5px; color:var(--text-dimmer); line-height:1.45;
+    padding:10px 12px; background:rgba(59,130,246,.06); border:1px solid rgba(59,130,246,.18);
+    border-radius:6px;
+  }
+  .help code{background:#1a1a1f; padding:1px 5px; border-radius:3px;}
+
+  details summary{cursor:pointer; color:var(--text-dim); font-size:12px; padding:4px 0;}
+  details[open] summary{color:#fff;}
+  details .body{padding-top:10px;}
 </style>
 </head>
 <body>
+
+<header>
+  <div class="brand">
+    <div class="logo">P</div>
+    <div>
+      <h1>Proto-Kit Builder</h1>
+      <div class="sub">Build a mobile prototype in your browser. No code.</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button id="resetBtn" type="button" title="Reset to defaults">↺ Reset</button>
+    <button id="shareBtn" type="button">🔗 Copy link</button>
+    <button id="downloadBtn" type="button" class="primary">⤓ Download HTML</button>
+  </div>
+</header>
+
 <div class="wrap">
-  <h1>Proto-Kit</h1>
-  <p class="lead">
-    A self-contained kit for building mobile-app feature prototypes that match a real recording at 1:1
-    fidelity. Phone shell, bottom sheet, list state — themeable for any product via CSS variables and one
-    <code>ProtoKit.init({})</code> call.
-  </p>
+  <div class="form" id="form">
 
-  <h2>Live prototypes</h2>
-  <a class="card" href="apps/starter.html">
-    <div class="ttl">Starter <span class="pill">demo</span></div>
-    <div class="sub">Blank phone shell wired up with the "Add to list" pattern. Copy and re-skin.</div>
-  </a>
+    <div class="group">
+      <h2>Project</h2>
+      <div class="row two">
+        <div class="field">
+          <label for="brandName">Name</label>
+          <input id="brandName" type="text" placeholder="Spotify" />
+          <span class="hint">Used as the storage namespace. Not shown to users.</span>
+        </div>
+        <div class="field">
+          <label for="brandColor">Brand color</label>
+          <div class="color-row">
+            <input id="brandColor" type="color" value="#22c55e" />
+            <input id="brandColorHex" type="text" value="#22c55e" maxlength="7" />
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <h2>Build your own</h2>
-  <pre>cp apps/starter.html apps/spotify.html
-# Then edit ProtoKit.init({ ... }) at the bottom:
-#   brand:   { name, color }
-#   item:    { id, title }   ← the thing being added
-#   defaultList:  { id, name, color }
-#   customLists:  [{ id, name, color }, ...]
-#   unit:    "songs" | "movies" | "places" | ...</pre>
-  <p style="color:#888;font-size:13px;margin-top:10px;">
-    The body of the phone is yours — header, hero, content, action row. The lib injects the sheet,
-    persists state per brand in <code>localStorage</code>, and wires up the trigger button by id
-    (<code>#addToListBtn</code>).
-  </p>
+    <div class="group">
+      <h2>Item being saved</h2>
+      <div class="field">
+        <label for="itemTitle">Title</label>
+        <input id="itemTitle" type="text" placeholder="Bohemian Rhapsody" />
+      </div>
+      <div class="row two" style="margin-top:10px;">
+        <div class="field">
+          <label for="itemSubtitle">Subtitle (optional)</label>
+          <input id="itemSubtitle" type="text" placeholder="Queen · 1975" />
+        </div>
+        <div class="field">
+          <label for="itemHero">Hero image URL (optional)</label>
+          <input id="itemHero" type="url" placeholder="https://…" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label for="itemDesc">Description (optional)</label>
+        <textarea id="itemDesc" placeholder="A short blurb shown under the title."></textarea>
+      </div>
+    </div>
 
-  <h2>Extract frames from a screen recording</h2>
-  <pre>pip3 install --user imageio imageio-ffmpeg pillow
-python3 extract-frames.py path/to/recording.mp4 --fps 1 --out frames/</pre>
-  <p style="color:#888;font-size:13px;margin-top:10px;">
-    Outputs <code>t000.jpg</code>, <code>t001.jpg</code>, … one frame per second by default. Use
-    <code>--fps 2</code> for denser sampling at screen transitions.
-  </p>
+    <div class="group">
+      <h2>Action &amp; sheet</h2>
+      <div class="row two">
+        <div class="field">
+          <label for="actionLabel">Action button</label>
+          <input id="actionLabel" type="text" placeholder="Add to playlist" />
+        </div>
+        <div class="field">
+          <label for="sheetTitle">Sheet title</label>
+          <input id="sheetTitle" type="text" placeholder="Add to playlist" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label for="unit">Unit name (singular)</label>
+        <input id="unit" type="text" placeholder="songs · places · recipes · items" />
+        <span class="hint">Shown as "9 <i>songs</i> · including this".</span>
+      </div>
+    </div>
 
-  <h2>Serve locally</h2>
-  <pre>./go.sh                    # python3 -m http.server 4477
-# then open http://localhost:4477</pre>
+    <div class="group">
+      <h2>Default list (pinned at top)</h2>
+      <div class="row two">
+        <div class="field">
+          <label for="defName">Name</label>
+          <input id="defName" type="text" placeholder="Liked songs" />
+        </div>
+        <div class="field">
+          <label for="defColor">Color</label>
+          <input id="defColor" type="color" value="#22c55e" />
+        </div>
+      </div>
+    </div>
 
-  <h2>Layout</h2>
-  <ul>
-    <li><code>index.html</code> — this page</li>
-    <li><code>go.sh</code> — start the local server</li>
-    <li><code>extract-frames.py</code> — video → frames</li>
-    <li><code>lib/shell.css</code> — phone frame, status bar, bottom nav, action row</li>
-    <li><code>lib/sheet.css</code> — bottom sheet, list rows, create form, toast</li>
-    <li><code>lib/state.js</code> — list state + localStorage persistence</li>
-    <li><code>lib/sheet.js</code> — sheet open/render/toggle/create</li>
-    <li><code>apps/*.html</code> — one file per prototype</li>
-  </ul>
+    <div class="group">
+      <h2>Custom lists</h2>
+      <div class="list-rows" id="listRows"></div>
+      <button class="add-list" id="addListBtn" type="button" style="margin-top:10px;">+ Add list</button>
+    </div>
+
+    <details>
+      <summary>How sharing works</summary>
+      <div class="body help">
+        Your config is encoded in the URL — <b>Copy link</b> sends the current
+        prototype to anyone with the URL. They see the same phone preview and can
+        keep editing in their own browser. <b>Download HTML</b> bundles the kit
+        + your config into a single self-contained file you can email or host
+        anywhere.
+      </div>
+    </details>
+  </div>
+
+  <div class="preview">
+    <iframe class="frame" id="phoneFrame" src="apps/_render.html" title="Phone preview"></iframe>
+    <div class="preview-meta">
+      Tap <b>+ Add to list</b> below the title to test the sheet.
+    </div>
+  </div>
 </div>
+
+<div class="builder-toast" id="builderToast"></div>
+
+<script>
+  // ---------- Defaults ----------
+  const DEFAULT_CONFIG = {
+    brand: { name: "Spotify", color: "#1DB954" },
+    item: { id: "item-1", title: "Bohemian Rhapsody" },
+    sheetTitle: "Add to playlist",
+    actionLabel: "Add to playlist",
+    unit: "songs",
+    defaultList: { id: "liked", name: "Liked songs", color: "#1DB954" },
+    customLists: [
+      { id: "workout",    name: "Workout",    color: "#f59e0b" },
+      { id: "chill",      name: "Chill vibes", color: "#0ea5e9" },
+      { id: "deep-cuts",  name: "Deep cuts",  color: "#7c3aed" }
+    ],
+    titlePage: {
+      title: "Bohemian Rhapsody",
+      subtitle: "Queen · 1975 · 5:55",
+      desc: "Iconic six-part rock ballad released as part of A Night at the Opera.",
+      hero: ""
+    }
+  };
+
+  const STORAGE = "protokit:builder:v1";
+
+  // ---------- State ----------
+  let config = loadConfig();
+
+  function loadConfig(){
+    // Priority: URL hash > localStorage > defaults
+    const hash = window.location.hash.slice(1);
+    if(hash){
+      try{
+        const decoded = JSON.parse(decodeURIComponent(atob(hash)));
+        return mergeWithDefaults(decoded);
+      }catch(_){}
+    }
+    try{
+      const raw = localStorage.getItem(STORAGE);
+      if(raw) return mergeWithDefaults(JSON.parse(raw));
+    }catch(_){}
+    return structuredClone(DEFAULT_CONFIG);
+  }
+
+  function mergeWithDefaults(cfg){
+    const base = structuredClone(DEFAULT_CONFIG);
+    return Object.assign(base, cfg, {
+      brand: Object.assign(base.brand, cfg.brand||{}),
+      item: Object.assign(base.item, cfg.item||{}),
+      defaultList: Object.assign(base.defaultList, cfg.defaultList||{}),
+      titlePage: Object.assign(base.titlePage, cfg.titlePage||{}),
+      customLists: Array.isArray(cfg.customLists) ? cfg.customLists : base.customLists
+    });
+  }
+
+  function saveConfig(){
+    try{ localStorage.setItem(STORAGE, JSON.stringify(config)); }catch(_){}
+  }
+
+  function encodeHash(){
+    return btoa(encodeURIComponent(JSON.stringify(config)));
+  }
+
+  function syncHash(){
+    const enc = encodeHash();
+    if("#" + enc !== window.location.hash){
+      history.replaceState(null, "", "#" + enc);
+    }
+  }
+
+  // ---------- Form binding ----------
+  const $ = (id) => document.getElementById(id);
+
+  function bindText(id, get, set){
+    const el = $(id);
+    el.value = get() || "";
+    el.addEventListener("input", () => { set(el.value); update(); });
+  }
+  function bindColor(id, hexId, get, set){
+    const c = $(id), h = $(hexId);
+    const v = (get() || "#000000").toLowerCase();
+    c.value = v; if(h) h.value = v;
+    c.addEventListener("input", () => { set(c.value); if(h) h.value=c.value; update(); });
+    if(h) h.addEventListener("input", () => {
+      const v = h.value.trim();
+      if(/^#[0-9a-f]{6}$/i.test(v)){ c.value = v; set(v); update(); }
+    });
+  }
+
+  function renderCustomLists(){
+    const wrap = $("listRows");
+    wrap.innerHTML = "";
+    config.customLists.forEach((list, idx) => {
+      const row = document.createElement("div");
+      row.className = "lr";
+      row.innerHTML = `
+        <input type="color" value="${list.color}" data-idx="${idx}" data-key="color" />
+        <input type="text" value="${escAttr(list.name)}" data-idx="${idx}" data-key="name" placeholder="List name" />
+        <button class="del" type="button" data-idx="${idx}" title="Remove">×</button>
+      `;
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll("input").forEach(inp => {
+      inp.addEventListener("input", (e) => {
+        const i = +e.target.dataset.idx, k = e.target.dataset.key;
+        config.customLists[i][k] = e.target.value;
+        if(k === "name"){ config.customLists[i].id = slugify(e.target.value) || `list-${i}`; }
+        update();
+      });
+    });
+    wrap.querySelectorAll(".del").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        config.customLists.splice(+e.target.dataset.idx, 1);
+        renderCustomLists();
+        update();
+      });
+    });
+  }
+
+  function escAttr(s){ return String(s||"").replace(/"/g, "&quot;"); }
+  function slugify(s){
+    return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  }
+
+  function bindAll(){
+    bindText("brandName", () => config.brand.name, v => config.brand.name = v);
+    bindColor("brandColor", "brandColorHex",
+      () => config.brand.color, v => config.brand.color = v);
+
+    bindText("itemTitle", () => config.titlePage.title, v => {
+      config.titlePage.title = v;
+      config.item.title = v;
+      config.item.id = slugify(v) || "item-1";
+    });
+    bindText("itemSubtitle", () => config.titlePage.subtitle, v => config.titlePage.subtitle = v);
+    bindText("itemHero", () => config.titlePage.hero, v => config.titlePage.hero = v);
+    bindText("itemDesc", () => config.titlePage.desc, v => config.titlePage.desc = v);
+
+    bindText("actionLabel", () => config.actionLabel, v => config.actionLabel = v);
+    bindText("sheetTitle", () => config.sheetTitle, v => config.sheetTitle = v);
+    bindText("unit", () => config.unit, v => config.unit = v);
+
+    bindText("defName", () => config.defaultList.name, v => {
+      config.defaultList.name = v;
+      config.defaultList.id = slugify(v) || "default";
+    });
+    bindColor("defColor", null, () => config.defaultList.color, v => config.defaultList.color = v);
+
+    $("addListBtn").addEventListener("click", () => {
+      config.customLists.push({
+        id: `list-${Date.now()}`,
+        name: "",
+        color: ["#f59e0b","#0ea5e9","#7c3aed","#ec4899","#22c55e"][config.customLists.length % 5]
+      });
+      renderCustomLists();
+      update();
+    });
+
+    $("downloadBtn").addEventListener("click", downloadHTML);
+    $("shareBtn").addEventListener("click", copyShareLink);
+    $("resetBtn").addEventListener("click", () => {
+      if(!confirm("Reset all fields to defaults? Your custom config will be lost.")) return;
+      config = structuredClone(DEFAULT_CONFIG);
+      saveConfig();
+      location.hash = "";
+      location.reload();
+    });
+
+    renderCustomLists();
+  }
+
+  // ---------- Push to iframe ----------
+  function postToIframe(){
+    const iframe = $("phoneFrame");
+    if(!iframe.contentWindow) return;
+    iframe.contentWindow.postMessage({ type: "config", config }, "*");
+  }
+
+  function update(){
+    saveConfig();
+    syncHash();
+    postToIframe();
+  }
+
+  // ---------- Iframe initial load ----------
+  $("phoneFrame").addEventListener("load", () => {
+    // Re-send config once the iframe is loaded
+    postToIframe();
+  });
+
+  // ---------- Download self-contained HTML ----------
+  async function downloadHTML(){
+    try{
+      const [shell, sheet, state, sheetJs, render] = await Promise.all([
+        fetch("lib/shell.css").then(r=>r.text()),
+        fetch("lib/sheet.css").then(r=>r.text()),
+        fetch("lib/state.js").then(r=>r.text()),
+        fetch("lib/sheet.js").then(r=>r.text()),
+        fetch("apps/_render.html").then(r=>r.text())
+      ]);
+
+      // Strip the linked stylesheets and script tags from _render.html, then inline.
+      const closeScript = "<\/script>";
+      let body = render
+        .replace(/<link[^>]+href="\.\.\/lib\/[^"]+"[^>]*>/g, "")
+        .replace(/<script src="\.\.\/lib\/[^"]+"><\/script>/g, "");
+      // Replace the inline render() call setup with an inlined config so no hash is needed.
+      const inlineCfgJSON = JSON.stringify(config);
+      body = body.replace(
+        /function readConfig\(\)\{[^}]*\}/,
+        `function readConfig(){ return ${inlineCfgJSON}; }`
+      );
+      // Inline the stylesheets and scripts in place
+      body = body.replace(
+        /<\/head>/,
+        `<style>${shell}\n${sheet}</style><\/head>`
+      );
+      body = body.replace(
+        /<body>/,
+        `<body>\n<script>${state}\n${sheetJs}${closeScript}`
+      );
+
+      const blob = new Blob([body], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slugify(config.brand.name) || "prototype"}.html`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast(`Downloaded ${a.download}`);
+    }catch(err){
+      console.error(err);
+      toast("Download failed — check console");
+    }
+  }
+
+  function copyShareLink(){
+    const url = window.location.origin + window.location.pathname + "#" + encodeHash();
+    navigator.clipboard.writeText(url).then(
+      () => toast("Share link copied"),
+      () => prompt("Copy this link:", url)
+    );
+  }
+
+  // ---------- Toast ----------
+  let toastT;
+  function toast(text){
+    const t = $("builderToast");
+    t.textContent = text;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove("show"), 1800);
+  }
+
+  // ---------- Boot ----------
+  bindAll();
+  syncHash();
+  // First push happens when iframe fires its load event.
+</script>
 </body>
 </html>
