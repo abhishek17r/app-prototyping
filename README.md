@@ -7,8 +7,8 @@ Built around the **tap → pick from a list → confirm** pattern (Add to list, 
 ## Quick start
 
 ```bash
-git clone https://github.com/abhishek17r/proto-kit.git
-cd proto-kit
+git clone https://github.com/abhishek17r/app-prototyping.git
+cd app-prototyping
 ./go.sh                    # serves on http://localhost:4488
 ```
 
