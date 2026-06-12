@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<title>Proto-Kit</title>
+<style>
+  body{
+    margin:0;background:#0d0d0f;color:#eee;
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;
+    padding:48px 24px 80px;
+  }
+  .wrap{max-width:680px;margin:0 auto;}
+  h1{font-size:30px;margin:0 0 8px;letter-spacing:-.3px;}
+  .lead{color:#aaa;margin:0 0 36px;font-size:15px;}
+  h2{font-size:12px;color:#8a8a8a;text-transform:uppercase;letter-spacing:.1em;margin:36px 0 10px;font-weight:600;}
+  a.card{
+    display:block;padding:14px 16px;background:#1a1a1c;border:1px solid #2a2a2d;
+    border-radius:10px;color:#fff;text-decoration:none;margin-bottom:8px;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  a.card:hover{border-color:#555;}
+  a.card .ttl{font-weight:600;font-size:15px;}
+  a.card .sub{color:#888;font-size:13px;margin-top:3px;}
+  code{background:#222;padding:1.5px 6px;border-radius:4px;font-size:13px;font-family:ui-monospace,Menlo,monospace;}
+  pre{
+    background:#16161a;padding:12px 14px;border-radius:8px;overflow:auto;
+    font-size:12.5px;font-family:ui-monospace,Menlo,monospace;line-height:1.55;margin:0 0 8px;
+  }
+  ul{margin:0;padding-left:20px;}
+  li{margin-bottom:4px;color:#bbb;}
+  li code{font-size:12px;}
+  .pill{
+    display:inline-block;background:#222;color:#ccc;font-size:11px;
+    padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;letter-spacing:.02em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Proto-Kit</h1>
+  <p class="lead">
+    A self-contained kit for building mobile-app feature prototypes that match a real recording at 1:1
+    fidelity. Phone shell, bottom sheet, list state — themeable for any product via CSS variables and one
+    <code>ProtoKit.init({})</code> call.
+  </p>
+
+  <h2>Live prototypes</h2>
+  <a class="card" href="apps/starter.html">
+    <div class="ttl">Starter <span class="pill">demo</span></div>
+    <div class="sub">Blank phone shell wired up with the "Add to list" pattern. Copy and re-skin.</div>
+  </a>
+
+  <h2>Build your own</h2>
+  <pre>cp apps/starter.html apps/spotify.html
+# Then edit ProtoKit.init({ ... }) at the bottom:
+#   brand:   { name, color }
+#   item:    { id, title }   ← the thing being added
+#   defaultList:  { id, name, color }
+#   customLists:  [{ id, name, color }, ...]
+#   unit:    "songs" | "movies" | "places" | ...</pre>
+  <p style="color:#888;font-size:13px;margin-top:10px;">
+    The body of the phone is yours — header, hero, content, action row. The lib injects the sheet,
+    persists state per brand in <code>localStorage</code>, and wires up the trigger button by id
+    (<code>#addToListBtn</code>).
+  </p>
+
+  <h2>Extract frames from a screen recording</h2>
+  <pre>pip3 install --user imageio imageio-ffmpeg pillow
+python3 extract-frames.py path/to/recording.mp4 --fps 1 --out frames/</pre>
+  <p style="color:#888;font-size:13px;margin-top:10px;">
+    Outputs <code>t000.jpg</code>, <code>t001.jpg</code>, … one frame per second by default. Use
+    <code>--fps 2</code> for denser sampling at screen transitions.
+  </p>
+
+  <h2>Serve locally</h2>
+  <pre>./go.sh                    # python3 -m http.server 4477
+# then open http://localhost:4477</pre>
+
+  <h2>Layout</h2>
+  <ul>
+    <li><code>index.html</code> — this page</li>
+    <li><code>go.sh</code> — start the local server</li>
+    <li><code>extract-frames.py</code> — video → frames</li>
+    <li><code>lib/shell.css</code> — phone frame, status bar, bottom nav, action row</li>
+    <li><code>lib/sheet.css</code> — bottom sheet, list rows, create form, toast</li>
+    <li><code>lib/state.js</code> — list state + localStorage persistence</li>
+    <li><code>lib/sheet.js</code> — sheet open/render/toggle/create</li>
+    <li><code>apps/*.html</code> — one file per prototype</li>
+  </ul>
+</div>
+</body>
+</html>
