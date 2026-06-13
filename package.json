@@ -2,18 +2,20 @@
   "name": "proto-kit",
   "version": "0.2.0",
   "private": true,
-  "description": "Prompt-driven mobile app prototype generator powered by Claude.",
+  "description": "Prompt-driven mobile app prototype generator powered by OpenAI.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
     "express": "^4.19.2",
     "ffmpeg-static": "^5.2.0",
-    "multer": "^1.4.5-lts.2"
+    "multer": "^1.4.5-lts.2",
+    "openai": "^4.78.0"
   }
 }

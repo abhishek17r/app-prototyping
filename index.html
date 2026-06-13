@@ -458,24 +458,24 @@
   <div class="modal">
     <h2>Settings</h2>
     <div class="field">
-      <label for="apiKey">Anthropic API key</label>
+      <label for="apiKey">OpenAI API key</label>
       <div class="key-row">
-        <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
+        <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
         <button type="button" id="revealKey">Show</button>
       </div>
       <div class="help">
         Stored only in your browser (localStorage). Sent to the proto-kit
-        server on each generation request and proxied to Anthropic — never logged.
+        server on each request and proxied to OpenAI — never logged.
         Get a key at
-        <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+        <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>.
       </div>
     </div>
     <div class="field">
       <label for="model">Model</label>
       <select id="model">
-        <option value="claude-sonnet-4-6">Sonnet 4.6 — fast, capable (default)</option>
-        <option value="claude-opus-4-7">Opus 4.7 — best quality</option>
-        <option value="claude-haiku-4-5-20251001">Haiku 4.5 — fastest, cheapest</option>
+        <option value="gpt-4o">GPT-4o — fast, vision, capable (default)</option>
+        <option value="gpt-4.1">GPT-4.1 — higher quality</option>
+        <option value="gpt-4o-mini">GPT-4o mini — fastest, cheapest</option>
       </select>
       <div class="help">Larger models produce higher fidelity but cost more per generation.</div>
     </div>
@@ -521,7 +521,7 @@
 
   // ----- Initial sync of settings -----
   $("apiKey").value = localStorage.getItem(STORAGE.key) || "";
-  $("model").value  = localStorage.getItem(STORAGE.model) || "claude-sonnet-4-6";
+  $("model").value  = localStorage.getItem(STORAGE.model) || "gpt-4o";
 
   // ----- Settings modal -----
   $("settingsBtn").addEventListener("click", () => $("modalScrim").classList.add("show"));
@@ -648,7 +648,7 @@
   async function analyse(){
     if(state.phase !== "uploaded" || !state.videoFile) return;
     const apiKey = localStorage.getItem(STORAGE.key) || "";
-    const model = localStorage.getItem(STORAGE.model) || "claude-sonnet-4-6";
+    const model = localStorage.getItem(STORAGE.model) || "gpt-4o";
 
     showAnalyseError("");
     state.phase = "analysing";
@@ -818,7 +818,7 @@
     }
 
     const apiKey = localStorage.getItem(STORAGE.key) || "";
-    const model = localStorage.getItem(STORAGE.model) || "claude-sonnet-4-6";
+    const model = localStorage.getItem(STORAGE.model) || "gpt-4o";
 
     showError("");
     state.phase = "generating";

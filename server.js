@@ -6,14 +6,14 @@ const { spawn } = require("child_process");
 const express = require("express");
 const multer = require("multer");
 const ffmpegPath = require("ffmpeg-static");
-const Anthropic = require("@anthropic-ai/sdk");
+const OpenAI = require("openai");
 const SYSTEM_PROMPT = require("./lib/system-prompt");
 const ANALYSE_PROMPT = require("./lib/analyse-prompt");
 
 const app = express();
 const PORT = process.env.PORT || 4488;
-const SERVER_KEY = process.env.ANTHROPIC_API_KEY || "";
-const DEFAULT_MODEL = process.env.PROTO_KIT_MODEL || "claude-sonnet-4-6";
+const SERVER_KEY = process.env.OPENAI_API_KEY || "";
+const DEFAULT_MODEL = process.env.PROTO_KIT_MODEL || "gpt-4o";
 const MAX_FRAMES = parseInt(process.env.PROTO_KIT_MAX_FRAMES || "8", 10);
 
 // In-memory cache of extracted frames per session so refines can re-use them.
@@ -46,7 +46,7 @@ app.post("/api/analyse", upload.single("video"), async (req, res) => {
   if (!key) {
     return res.status(401).json({
       error:
-        "No API key. Paste your Anthropic key in Settings, or run the server with ANTHROPIC_API_KEY."
+        "No API key. Paste your OpenAI key in Settings, or run the server with OPENAI_API_KEY."
     });
   }
 
@@ -61,26 +61,26 @@ app.post("/api/analyse", upload.single("video"), async (req, res) => {
   SESSIONS.set(sessionId, { frames, createdAt: Date.now() });
 
   try {
-    const client = new Anthropic({ apiKey: key });
-    const content = [
+    const client = new OpenAI({ apiKey: key });
+    const userContent = [
+      { type: "text", text: `Above are ${frames.length} screenshots from a screen recording. Analyse the source app and return the JSON described in the system prompt.` },
       ...frames.map((b64) => ({
-        type: "image",
-        source: { type: "base64", media_type: "image/jpeg", data: b64 }
-      })),
-      { type: "text", text: `Above are ${frames.length} screenshots from a screen recording. Analyse the source app and return the JSON described in the system prompt.` }
+        type: "image_url",
+        image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "low" }
+      }))
     ];
 
-    const msg = await client.messages.create({
+    const msg = await client.chat.completions.create({
       model,
       max_tokens: 2000,
-      system: ANALYSE_PROMPT,
-      messages: [{ role: "user", content }]
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: ANALYSE_PROMPT },
+        { role: "user", content: userContent }
+      ]
     });
 
-    const text = msg.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("");
+    const text = msg.choices?.[0]?.message?.content || "";
     const analysis = extractJSON(text);
     if (!analysis) {
       return res.status(502).json({
@@ -92,7 +92,7 @@ app.post("/api/analyse", upload.single("video"), async (req, res) => {
       sessionId,
       frameCount: frames.length,
       analysis,
-      usage: msg.usage,
+      usage: normaliseUsage(msg.usage),
       model: msg.model
     });
   } catch (err) {
@@ -121,19 +121,14 @@ app.post("/api/generate", async (req, res) => {
   if (!key) {
     return res.status(401).json({
       error:
-        "No API key. Paste your Anthropic key in Settings, or run the server with ANTHROPIC_API_KEY."
+        "No API key. Paste your OpenAI key in Settings, or run the server with OPENAI_API_KEY."
     });
   }
 
   const frames = SESSIONS.get(sessionId).frames;
 
   try {
-    const client = new Anthropic({ apiKey: key });
-
-    const userContent = frames.map((b64) => ({
-      type: "image",
-      source: { type: "base64", media_type: "image/jpeg", data: b64 }
-    }));
+    const client = new OpenAI({ apiKey: key });
 
     let textPart = `Above are ${frames.length} screenshots from the source app. They define the visual language (brand color, typography, layout, iconography, navigation) of the prototype you will produce. Match this look as closely as possible.\n\n`;
     if (analysis) {
@@ -156,19 +151,25 @@ app.post("/api/generate", async (req, res) => {
     } else {
       textPart += `Feature to prototype (wire it into the existing app, don't build a standalone screen):\n${prompt}\n\nProduce a single self-contained HTML file that visually mimics the source app and has this new feature wired in (clickable, with realistic state transitions).`;
     }
-    userContent.push({ type: "text", text: textPart });
 
-    const msg = await client.messages.create({
+    const userContent = [
+      { type: "text", text: textPart },
+      ...frames.map((b64) => ({
+        type: "image_url",
+        image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "high" }
+      }))
+    ];
+
+    const msg = await client.chat.completions.create({
       model,
       max_tokens: 16000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userContent }]
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContent }
+      ]
     });
 
-    const text = msg.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("");
+    const text = msg.choices?.[0]?.message?.content || "";
 
     const html = extractHtml(text);
     if (!html) {
@@ -179,7 +180,7 @@ app.post("/api/generate", async (req, res) => {
     }
     res.json({
       html,
-      usage: msg.usage,
+      usage: normaliseUsage(msg.usage),
       model: msg.model,
       sessionId,
       frameCount: frames.length
@@ -189,6 +190,14 @@ app.post("/api/generate", async (req, res) => {
     res.status(status).json({ error: err?.message || String(err) });
   }
 });
+
+function normaliseUsage(u) {
+  if (!u) return null;
+  return {
+    input_tokens: u.prompt_tokens ?? u.input_tokens ?? 0,
+    output_tokens: u.completion_tokens ?? u.output_tokens ?? 0
+  };
+}
 
 // ---------- Helpers ----------
 
@@ -293,7 +302,7 @@ function extractHtml(text) {
 app.listen(PORT, () => {
   console.log(`proto-kit on http://localhost:${PORT}`);
   console.log(
-    SERVER_KEY ? "  api key: server-side (env)" : "  api key: client-side (paste in Settings)"
+    SERVER_KEY ? "  api key: server-side (env: OPENAI_API_KEY)" : "  api key: client-side (paste in Settings)"
   );
   console.log(`  model:   ${DEFAULT_MODEL}`);
   console.log(`  frames:  up to ${MAX_FRAMES} per video`);
