@@ -94,6 +94,48 @@
   }
   .step-sub::before{content:"— ";}
 
+  /* Design system editor */
+  details.ds-details{
+    background:var(--panel-2); border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; margin-bottom:14px;
+  }
+  details.ds-details summary{
+    cursor:pointer; font-size:12px; color:var(--text-dim); font-weight:600;
+    text-transform:uppercase; letter-spacing:.08em; list-style:none;
+  }
+  details.ds-details summary::-webkit-details-marker{display:none;}
+  details.ds-details summary::before{content:"▸ "; display:inline-block; transition:transform .15s;}
+  details.ds-details[open] summary::before{transform:rotate(90deg);}
+  .ds-pill{
+    display:inline-block; background:var(--panel); color:var(--text-dim);
+    padding:1px 6px; border-radius:8px; font-size:10px; margin-left:6px;
+    text-transform:none; letter-spacing:0; font-weight:600; border:1px solid var(--border);
+  }
+  .ds-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;
+    margin-top:10px;
+  }
+  @media (max-width:1100px){ .ds-grid{grid-template-columns:repeat(2,1fr);} }
+  .ds-color label{font-size:11px; color:var(--text-dim); display:block; margin-bottom:3px;}
+  .color-row{display:flex; align-items:center; gap:6px;}
+  .color-row input[type="color"]{
+    width:32px; height:30px; padding:0; border:1px solid var(--border-strong);
+    border-radius:5px; background:transparent; cursor:pointer; flex-shrink:0;
+  }
+  .color-row input[type="text"]{
+    flex:1; background:var(--panel); color:#fff; border:1px solid var(--border-strong);
+    padding:5px 7px; border-radius:5px; font:inherit;
+    font-family:ui-monospace,Menlo,monospace; font-size:11.5px;
+    outline:none; min-width:0;
+  }
+  .ds-meta{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;
+    margin-top:10px;
+  }
+  @media (max-width:1100px){ .ds-meta{grid-template-columns:repeat(2,1fr);} }
+  .ds-meta .field{margin-bottom:0;}
+  .ds-meta input{padding:6px 8px !important; font-size:12px !important;}
+
   /* Analysis panel — editable insights */
   .field{display:flex; flex-direction:column; gap:5px; margin-bottom:12px;}
   .field label{font-size:12px; color:var(--text-dim);}
@@ -348,7 +390,7 @@
   </div>
   <div class="actions">
     <button id="settingsBtn" type="button">⚙ Settings</button>
-    <button id="downloadBtn" type="button" disabled>⤓ Download</button>
+    <button id="downloadBtn" type="button" disabled>⤓ Download HTML</button>
     <button id="newBtn" type="button">+ New</button>
   </div>
 </header>
@@ -393,6 +435,67 @@
         <label for="appSummary">What it does</label>
         <input id="appSummary" type="text" placeholder="Streams movies and shows" />
       </div>
+
+      <details class="ds-details" open>
+        <summary>Design system <span class="ds-pill" id="dsPill"></span></summary>
+        <div class="ds-grid">
+          <div class="ds-color">
+            <label>Brand</label>
+            <div class="color-row"><input type="color" id="ds-brandColor" /><input type="text" id="ds-brandColorHex" maxlength="7" /></div>
+          </div>
+          <div class="ds-color">
+            <label>Background</label>
+            <div class="color-row"><input type="color" id="ds-background" /><input type="text" id="ds-backgroundHex" maxlength="7" /></div>
+          </div>
+          <div class="ds-color">
+            <label>Surface</label>
+            <div class="color-row"><input type="color" id="ds-surface" /><input type="text" id="ds-surfaceHex" maxlength="7" /></div>
+          </div>
+          <div class="ds-color">
+            <label>Text primary</label>
+            <div class="color-row"><input type="color" id="ds-textPrimary" /><input type="text" id="ds-textPrimaryHex" maxlength="7" /></div>
+          </div>
+          <div class="ds-color">
+            <label>Text secondary</label>
+            <div class="color-row"><input type="color" id="ds-textSecondary" /><input type="text" id="ds-textSecondaryHex" maxlength="7" /></div>
+          </div>
+          <div class="ds-color">
+            <label>Accent 2</label>
+            <div class="color-row"><input type="color" id="ds-accentSecondary" /><input type="text" id="ds-accentSecondaryHex" maxlength="7" /></div>
+          </div>
+        </div>
+        <div class="ds-meta">
+          <div class="field">
+            <label for="ds-borderRadius">Radius (px)</label>
+            <input type="text" id="ds-borderRadius" placeholder="8" />
+          </div>
+          <div class="field">
+            <label for="ds-fontFamily">Font</label>
+            <input type="text" id="ds-fontFamily" placeholder="system" />
+          </div>
+          <div class="field">
+            <label for="ds-titleWeight">Title weight</label>
+            <input type="text" id="ds-titleWeight" placeholder="700" />
+          </div>
+          <div class="field">
+            <label for="ds-density">Density</label>
+            <input type="text" id="ds-density" placeholder="comfortable" />
+          </div>
+          <div class="field">
+            <label for="ds-iconStyle">Icons</label>
+            <input type="text" id="ds-iconStyle" placeholder="line / filled" />
+          </div>
+          <div class="field">
+            <label for="ds-tabBar">Bottom tabs</label>
+            <input type="text" id="ds-tabBar" placeholder="Home, Search, You" />
+          </div>
+        </div>
+        <div class="field" style="margin-top:6px;">
+          <label for="ds-notes">Distinctive notes</label>
+          <input type="text" id="ds-notes" placeholder="e.g. red TOP 10 badges, horizontal poster carousels" />
+        </div>
+      </details>
+
       <div class="field">
         <label>Features</label>
         <div class="chips" id="featureChips"></div>
@@ -684,11 +787,36 @@
     return {
       appName: a.appName || "Unknown app",
       summary: a.summary || "",
+      designSystem: normaliseDS(a.designSystem),
       features: Array.isArray(a.features) ? a.features.filter(Boolean) : [],
       journeys: Array.isArray(a.journeys) ? a.journeys.map(j => ({
         title: j.title || "",
         steps: Array.isArray(j.steps) ? j.steps.filter(Boolean) : []
       })) : []
+    };
+  }
+
+  function normaliseDS(d){
+    d = d || {};
+    const hex = (v, fb) => {
+      if(!v) return fb;
+      const m = String(v).match(/#?[0-9a-f]{6}/i);
+      return m ? ("#" + m[0].replace("#","").toLowerCase()) : fb;
+    };
+    return {
+      brandColor:       hex(d.brandColor,       "#e50914"),
+      background:       hex(d.background,       "#000000"),
+      surface:          hex(d.surface,          "#141414"),
+      textPrimary:      hex(d.textPrimary,      "#ffffff"),
+      textSecondary:    hex(d.textSecondary,    "#b3b3b3"),
+      accentSecondary:  hex(d.accentSecondary,  ""),
+      borderRadius:     d.borderRadius || "8",
+      fontFamily:       d.fontFamily   || "system",
+      titleWeight:      d.titleWeight  || "700",
+      tabBar:           d.tabBar       || "",
+      iconStyle:        d.iconStyle    || "line",
+      density:          d.density      || "comfortable",
+      notes:            d.notes        || ""
     };
   }
 
@@ -716,9 +844,57 @@
     if(!state.analysis) return;
     $("appName").value = state.analysis.appName;
     $("appSummary").value = state.analysis.summary;
+    renderDesignSystem();
     renderFeatures();
     renderJourneys();
   }
+
+  // Design system editor
+  const DS_COLOR_KEYS = ["brandColor","background","surface","textPrimary","textSecondary","accentSecondary"];
+  const DS_TEXT_KEYS  = ["borderRadius","fontFamily","titleWeight","tabBar","iconStyle","density","notes"];
+
+  function renderDesignSystem(){
+    const ds = state.analysis.designSystem;
+    for(const k of DS_COLOR_KEYS){
+      const c = $("ds-" + k), h = $("ds-" + k + "Hex");
+      const v = ds[k] || "";
+      const isHex = /^#[0-9a-f]{6}$/i.test(v);
+      c.value = isHex ? v : "#000000";
+      h.value = v;
+    }
+    for(const k of DS_TEXT_KEYS){
+      const el = $("ds-" + k); if(el) el.value = ds[k] || "";
+    }
+    $("dsPill").textContent = ds.brandColor || "";
+    $("dsPill").style.background = ds.brandColor || "#222";
+    $("dsPill").style.color = "#000";
+  }
+
+  function bindDS(){
+    for(const k of DS_COLOR_KEYS){
+      const c = $("ds-" + k), h = $("ds-" + k + "Hex");
+      c.addEventListener("input", () => {
+        state.analysis.designSystem[k] = c.value;
+        h.value = c.value;
+        if(k === "brandColor"){ $("dsPill").textContent = c.value; $("dsPill").style.background = c.value; }
+      });
+      h.addEventListener("input", () => {
+        const v = h.value.trim();
+        if(/^#[0-9a-f]{6}$/i.test(v)){
+          state.analysis.designSystem[k] = v;
+          c.value = v;
+          if(k === "brandColor"){ $("dsPill").textContent = v; $("dsPill").style.background = v; }
+        } else {
+          state.analysis.designSystem[k] = v; // allow free text (could be empty)
+        }
+      });
+    }
+    for(const k of DS_TEXT_KEYS){
+      const el = $("ds-" + k); if(!el) continue;
+      el.addEventListener("input", () => { state.analysis.designSystem[k] = el.value; });
+    }
+  }
+  bindDS();
 
   function renderFeatures(){
     const wrap = $("featureChips");
@@ -995,17 +1171,18 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "prototype.html";
+    const app = (state.analysis?.appName || "prototype").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "prototype";
+    a.download = app + ".html";
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
-    toast("Downloaded prototype.html");
+    toast("Downloaded " + a.download);
   });
 
   $("openTabBtn").addEventListener("click", () => {
     if(!state.currentHtml) return;
     const blob = new Blob([state.currentHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    window.open(URL.createObjectURL(blob), "_blank");
   });
 
   // ----- Toast -----
@@ -1027,7 +1204,7 @@
   if(!localStorage.getItem(STORAGE.key)){
     fetch("/api/health").then(r=>r.json()).then(h=>{
       if(!h.serverKey){
-        toast("Paste your Anthropic API key in Settings to start →", "error");
+        toast("Paste your OpenAI API key in Settings to start →", "error");
       }
     }).catch(()=>{});
   }

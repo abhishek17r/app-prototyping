@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 4488;
 const SERVER_KEY = process.env.OPENAI_API_KEY || "";
 const DEFAULT_MODEL = process.env.PROTO_KIT_MODEL || "gpt-4o";
-const MAX_FRAMES = parseInt(process.env.PROTO_KIT_MAX_FRAMES || "8", 10);
+const MAX_FRAMES = parseInt(process.env.PROTO_KIT_MAX_FRAMES || "12", 10);
 
 // In-memory cache of extracted frames per session so refines can re-use them.
 const SESSIONS = new Map(); // id -> { frames: [base64...], createdAt }
@@ -130,18 +130,42 @@ app.post("/api/generate", async (req, res) => {
   try {
     const client = new OpenAI({ apiKey: key });
 
-    let textPart = `Above are ${frames.length} screenshots from the source app. They define the visual language (brand color, typography, layout, iconography, navigation) of the prototype you will produce. Match this look as closely as possible.\n\n`;
+    let textPart = `Below are ${frames.length} screenshots from the source app. They are the visual reference. The user-confirmed analysis (above all else) takes priority — use its exact design system values verbatim.\n\n`;
     if (analysis) {
-      textPart += "Context (user-confirmed analysis of the source app):\n";
-      textPart += `- App: ${analysis.appName || "(unknown)"}\n`;
-      if (analysis.summary) textPart += `- What it does: ${analysis.summary}\n`;
+      textPart += "USER-CONFIRMED ANALYSIS\n";
+      textPart += `App: ${analysis.appName || "(unknown)"}\n`;
+      if (analysis.summary) textPart += `What it does: ${analysis.summary}\n`;
+
+      const ds = analysis.designSystem || {};
+      if (Object.keys(ds).length) {
+        textPart += "\nDESIGN SYSTEM (use these EXACTLY — do not substitute generics):\n";
+        const keys = [
+          ["brandColor", "Brand color"],
+          ["background", "Background"],
+          ["surface", "Surface (cards/sheets)"],
+          ["textPrimary", "Text primary"],
+          ["textSecondary", "Text secondary"],
+          ["accentSecondary", "Accent secondary"],
+          ["borderRadius", "Border radius (px)"],
+          ["fontFamily", "Font family intent"],
+          ["titleWeight", "Title weight"],
+          ["tabBar", "Bottom nav tabs"],
+          ["iconStyle", "Icon style"],
+          ["density", "Density"],
+          ["notes", "Distinctive notes"]
+        ];
+        for (const [k, label] of keys) {
+          if (ds[k] != null && ds[k] !== "") textPart += `- ${label}: ${ds[k]}\n`;
+        }
+      }
+
       if (Array.isArray(analysis.features) && analysis.features.length) {
-        textPart += `- Existing features: ${analysis.features.join(", ")}\n`;
+        textPart += `\nExisting features: ${analysis.features.join(", ")}\n`;
       }
       if (Array.isArray(analysis.journeys) && analysis.journeys.length) {
-        textPart += "- User journeys shown:\n";
+        textPart += "\nUser journeys shown:\n";
         for (const j of analysis.journeys) {
-          textPart += `  • ${j.title}: ${(j.steps || []).join(" → ")}\n`;
+          textPart += `- ${j.title}: ${(j.steps || []).join(" → ")}\n`;
         }
       }
       textPart += "\n";
