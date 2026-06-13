@@ -1,101 +1,82 @@
 # Proto-Kit
 
-A self-contained kit for building 1:1 fidelity mobile-app feature prototypes in plain HTML — phone shell, bottom sheet, list state, all themable for any product via CSS variables and one config object.
+Upload a screen recording of an existing mobile app. Describe a feature you want to test inside it. Get back a clickable HTML mockup that looks like the source app with your new feature wired in.
 
-Built around the **tap → pick from a list → confirm** pattern (Add to list, Save to collection, Pin to board, Add to cart, Save to trip, etc.).
+Powered by Claude (multimodal). Self-hostable. Bring your own Anthropic API key — the server only proxies; nothing is stored on disk.
 
 ## Quick start
 
 ```bash
 git clone https://github.com/abhishek17r/app-prototyping.git
 cd app-prototyping
-./go.sh                    # serves on http://localhost:4488
+./go.sh                       # installs deps + starts server on :4488
 ```
 
-Open `http://localhost:4488/apps/starter.html` and tap **+ Add to list**.
+Open `http://localhost:4488`. Click **⚙ Settings**, paste your Anthropic API key, save. Type a feature description, hit **✨ Generate**.
 
-No npm. No build step. Just a folder of files and Python's built-in HTTP server.
+Get an API key at [console.anthropic.com](https://console.anthropic.com/settings/keys).
 
-## Make a new prototype
+## What it does
+
+1. **Upload a video** of the existing app you want to prototype inside (e.g. record your screen using Netflix, Spotify, your own app). MP4/MOV up to 120 MB.
+2. **Describe the feature** in plain English — "Add a custom-lists feature to the title page", "Add a tip selector to the order detail", "Add a price alert on the product page".
+3. **Generate.** The server samples ~8 frames evenly from the video and sends them to Claude as the visual reference. Claude returns a single self-contained HTML file that **mimics the source app's look** (brand color, typography, navigation, density) and has the new feature wired in clickably.
+4. **Refine.** After the first generation, follow-up prompts ("make the Continue button bigger", "add a 'Skip' link") update the prototype. The frames stay cached server-side for 1h so refines don't re-upload.
+5. **Download / share.** Save the `.html` or open it in a new tab. Runs in any browser with zero dependencies.
+
+History persists in `localStorage`. Each item is one prototype + its full prompt thread.
+
+## Configuration
+
+Environment variables (all optional):
+
+| Var | Default | Notes |
+|---|---|---|
+| `PORT` | `4488` | HTTP port |
+| `ANTHROPIC_API_KEY` | — | If set, the server uses this and users don't have to paste their own |
+| `PROTO_KIT_MODEL` | `claude-sonnet-4-6` | Default model. Users can override per-request in Settings |
+| `PROTO_KIT_MAX_FRAMES` | `8` | Frames sampled per video. Higher = better fidelity, more tokens |
+
+Run with a server-side key (no per-user paste required):
 
 ```bash
-cp apps/starter.html apps/spotify.html
+ANTHROPIC_API_KEY=sk-ant-... ./go.sh
 ```
 
-Then edit `apps/spotify.html`:
+## File layout
 
-1. **Replace the title-page markup** (everything inside `.screen` *above* the action row) with your product's UI — hero image, title, metadata, content. Keep `<button id="addToListBtn">…</button>`.
-2. **Update the `ProtoKit.init({...})` call** at the bottom:
-
-```js
-ProtoKit.init({
-  brand:       { name: "Spotify", color: "#1DB954" },
-  item:        { id: "song-bohemian-rhapsody", title: "Bohemian Rhapsody" },
-  sheetTitle:  "Add to playlist",
-  actionLabel: "Add to playlist",
-  unit:        "songs",
-  defaultList: { id: "liked",   name: "Liked Songs", color: "#1DB954" },
-  customLists: [
-    { id: "workout",     name: "Workout",      color: "#f59e0b" },
-    { id: "chill-vibes", name: "Chill Vibes",  color: "#0ea5e9" }
-  ]
-});
+```
+app-prototyping/
+├── server.js               ← Express + Anthropic proxy
+├── package.json
+├── go.sh                   ← installs deps and starts server
+├── index.html              ← the generator UI (describe → render)
+├── lib/
+│   ├── system-prompt.js    ← the prompt that drives Claude's output
+│   └── shell.css           ← reference phone-shell CSS (not loaded by default)
+└── extract-frames.py       ← helper: video → frames at 1 fps
 ```
 
-The lib handles the rest: injects the bottom sheet, themes everything via `--brand`, persists per-app state to `localStorage` under `protokit:<brand>:*`, and wires `#addToListBtn` automatically.
+To change how prototypes look or behave, edit `lib/system-prompt.js`. The whole "style" of the tool — fidelity level, dark/light default, multi-screen convention, fonts — lives there.
 
 ## Extract frames from a screen recording
 
-When you want to match a real app's fidelity, sample frames from a recording first:
+When you want Claude to match a real app's look, sample frames from a recording and reference them in your prompt:
 
 ```bash
 pip3 install --user imageio imageio-ffmpeg pillow
 python3 extract-frames.py path/to/recording.mp4 --fps 1 --out frames/
 ```
 
-Outputs `t000.jpg`, `t001.jpg`, … one frame per second by default. Use `--fps 2` for denser sampling around screen transitions.
+Outputs `t000.jpg`, `t001.jpg`, … one frame per second.
 
-## File layout
+## Sharing
 
-```
-proto-kit/
-├── index.html            ← landing page (auto-served at /)
-├── go.sh                 ← start local server on :4488
-├── extract-frames.py     ← video → frames at N fps
-├── lib/
-│   ├── shell.css         ← phone frame, status bar, bottom nav, action row
-│   ├── sheet.css         ← bottom sheet, list rows, create form, toast
-│   ├── state.js          ← list state + localStorage persistence
-│   └── sheet.js          ← open / render / toggle / create
-└── apps/
-    └── starter.html      ← blank shell — copy to start a new prototype
-```
+To let others prototype without standing up their own server:
 
-## What it's good for
-
-Works out of the box for any feature where a user assigns an item to one or more named buckets:
-
-- Add to list / playlist / collection / board / folder
-- Save to trip / wishlist / cart
-- Tag with project / label / category
-- Move to / share with
-
-For patterns that don't fit (forms, maps, chat, multi-step flows), the phone shell and theming primitives in `lib/shell.css` are still useful — write your own custom screens against them and skip `sheet.js`.
-
-## Config reference
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `brand.name` | string | ✓ | Used as the localStorage namespace. |
-| `brand.color` | css color | ✓ | Sets `--brand` for checks, pills, toast accent. |
-| `item.id` | string | ✓ | Unique id of the thing being saved. Membership keyed by this. |
-| `item.title` | string | ✓ | Shown as the sheet subtitle. |
-| `defaultList` | `{id, name, color}` | ✓ | Pinned at top with a DEFAULT pill. |
-| `customLists` | array | — | Seeded user lists. Color is the swatch. |
-| `unit` | string | — | "items", "songs", "places"… Used in row counts. |
-| `sheetTitle` | string | — | Sheet header. Defaults to "Add to list". |
-| `actionLabel` | string | — | Initial label on `#addToListBtn`. |
-| `swatches` | string[] | — | Colors offered in the Create-list color picker. |
+- **Easiest:** host this repo somewhere small (Fly.io, Render, Railway) with `ANTHROPIC_API_KEY` set, then share the URL. Anyone with the link can prototype using your key. Watch the spend.
+- **Safer:** host the same way but **don't** set `ANTHROPIC_API_KEY`. Each visitor pastes their own key — your wallet is safe, theirs isn't shared with you.
+- **Hands-off:** anyone can `git clone` + `./go.sh` and run it locally on port 4488.
 
 ## License
 

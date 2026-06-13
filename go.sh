@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Start the local prototype server. Open http://localhost:4477 in a browser.
+# Start the proto-kit server. Open http://localhost:4488 in a browser.
 set -e
 cd "$(dirname "$0")"
-exec python3 -m http.server 4477
+
+if [ ! -d node_modules ]; then
+  echo "→ installing dependencies (one-time)…"
+  npm install --silent
+fi
+
+exec node server.js
