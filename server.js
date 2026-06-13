@@ -8,6 +8,7 @@ const multer = require("multer");
 const ffmpegPath = require("ffmpeg-static");
 const Anthropic = require("@anthropic-ai/sdk");
 const SYSTEM_PROMPT = require("./lib/system-prompt");
+const ANALYSE_PROMPT = require("./lib/analyse-prompt");
 
 const app = express();
 const PORT = process.env.PORT || 4488;
@@ -35,14 +36,86 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, model: DEFAULT_MODEL, serverKey: !!SERVER_KEY });
 });
 
-app.post("/api/generate", upload.single("video"), async (req, res) => {
+// Step 1: extract frames, identify app + features + journeys.
+app.post("/api/analyse", upload.single("video"), async (req, res) => {
+  const apiKey = req.body.apiKey || "";
+  const model = req.body.model || DEFAULT_MODEL;
+
+  if (!req.file) return res.status(400).json({ error: "Missing 'video' file." });
+  const key = (apiKey && apiKey.trim()) || SERVER_KEY;
+  if (!key) {
+    return res.status(401).json({
+      error:
+        "No API key. Paste your Anthropic key in Settings, or run the server with ANTHROPIC_API_KEY."
+    });
+  }
+
+  let frames;
+  try {
+    frames = await extractFrames(req.file.buffer, MAX_FRAMES);
+  } catch (err) {
+    return res.status(400).json({ error: "Frame extraction failed: " + err.message });
+  }
+
+  const sessionId = "s-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  SESSIONS.set(sessionId, { frames, createdAt: Date.now() });
+
+  try {
+    const client = new Anthropic({ apiKey: key });
+    const content = [
+      ...frames.map((b64) => ({
+        type: "image",
+        source: { type: "base64", media_type: "image/jpeg", data: b64 }
+      })),
+      { type: "text", text: `Above are ${frames.length} screenshots from a screen recording. Analyse the source app and return the JSON described in the system prompt.` }
+    ];
+
+    const msg = await client.messages.create({
+      model,
+      max_tokens: 2000,
+      system: ANALYSE_PROMPT,
+      messages: [{ role: "user", content }]
+    });
+
+    const text = msg.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+    const analysis = extractJSON(text);
+    if (!analysis) {
+      return res.status(502).json({
+        error: "Couldn't parse analysis JSON from model.",
+        raw: text.slice(0, 1200)
+      });
+    }
+    res.json({
+      sessionId,
+      frameCount: frames.length,
+      analysis,
+      usage: msg.usage,
+      model: msg.model
+    });
+  } catch (err) {
+    const status = err?.status || 500;
+    res.status(status).json({ error: err?.message || String(err) });
+  }
+});
+
+// Step 2: generate the prototype HTML from the analysed session + a feature prompt.
+app.post("/api/generate", async (req, res) => {
   const prompt = (req.body.prompt || "").trim();
   const previousHtml = req.body.previousHtml || "";
   const apiKey = req.body.apiKey || "";
   const model = req.body.model || DEFAULT_MODEL;
   const sessionId = req.body.sessionId || "";
+  const analysis = req.body.analysis || null;
 
   if (!prompt) return res.status(400).json({ error: "Missing 'prompt' string." });
+  if (!sessionId || !SESSIONS.has(sessionId)) {
+    return res.status(400).json({
+      error: "No active session. Upload a video and run Analyse first."
+    });
+  }
 
   const key = (apiKey && apiKey.trim()) || SERVER_KEY;
   if (!key) {
@@ -52,40 +125,36 @@ app.post("/api/generate", upload.single("video"), async (req, res) => {
     });
   }
 
-  // Resolve frames: either uploaded video (new session) or cached (refinement).
-  let frames = [];
-  let newSessionId = sessionId;
-  try {
-    if (req.file) {
-      frames = await extractFrames(req.file.buffer, MAX_FRAMES);
-      newSessionId = "s-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-      SESSIONS.set(newSessionId, { frames, createdAt: Date.now() });
-    } else if (sessionId && SESSIONS.has(sessionId)) {
-      frames = SESSIONS.get(sessionId).frames;
-    }
-  } catch (err) {
-    return res.status(400).json({ error: "Frame extraction failed: " + err.message });
-  }
+  const frames = SESSIONS.get(sessionId).frames;
 
   try {
     const client = new Anthropic({ apiKey: key });
 
-    const userContent = [];
-    for (const b64 of frames) {
-      userContent.push({
-        type: "image",
-        source: { type: "base64", media_type: "image/jpeg", data: b64 }
-      });
-    }
+    const userContent = frames.map((b64) => ({
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data: b64 }
+    }));
 
-    let textPart = "";
-    if (frames.length) {
-      textPart += `Above are ${frames.length} screenshots sampled from a screen recording of the source app. They define the visual language (colors, fonts, spacing, iconography, navigation) of the prototype you will produce. Match this look as closely as possible.\n\n`;
+    let textPart = `Above are ${frames.length} screenshots from the source app. They define the visual language (brand color, typography, layout, iconography, navigation) of the prototype you will produce. Match this look as closely as possible.\n\n`;
+    if (analysis) {
+      textPart += "Context (user-confirmed analysis of the source app):\n";
+      textPart += `- App: ${analysis.appName || "(unknown)"}\n`;
+      if (analysis.summary) textPart += `- What it does: ${analysis.summary}\n`;
+      if (Array.isArray(analysis.features) && analysis.features.length) {
+        textPart += `- Existing features: ${analysis.features.join(", ")}\n`;
+      }
+      if (Array.isArray(analysis.journeys) && analysis.journeys.length) {
+        textPart += "- User journeys shown:\n";
+        for (const j of analysis.journeys) {
+          textPart += `  • ${j.title}: ${(j.steps || []).join(" → ")}\n`;
+        }
+      }
+      textPart += "\n";
     }
     if (previousHtml) {
       textPart += `Previous prototype (refine this — keep what works, change only what's asked):\n\n${previousHtml}\n\nUser refinement:\n${prompt}`;
     } else {
-      textPart += `Feature to prototype:\n${prompt}\n\nProduce a single self-contained HTML file that visually mimics the source app and has this new feature wired in (clickable, with realistic state transitions).`;
+      textPart += `Feature to prototype (wire it into the existing app, don't build a standalone screen):\n${prompt}\n\nProduce a single self-contained HTML file that visually mimics the source app and has this new feature wired in (clickable, with realistic state transitions).`;
     }
     userContent.push({ type: "text", text: textPart });
 
@@ -112,7 +181,7 @@ app.post("/api/generate", upload.single("video"), async (req, res) => {
       html,
       usage: msg.usage,
       model: msg.model,
-      sessionId: newSessionId || null,
+      sessionId,
       frameCount: frames.length
     });
   } catch (err) {
@@ -191,6 +260,22 @@ function runFFmpeg(args) {
     );
     p.on("error", reject);
   });
+}
+
+function extractJSON(text) {
+  if (!text) return null;
+  // Strip markdown fences if any.
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const body = (fenced ? fenced[1] : text).trim();
+  // Find first { ... } block at top level.
+  const first = body.indexOf("{");
+  const last = body.lastIndexOf("}");
+  if (first === -1 || last === -1 || last <= first) return null;
+  try {
+    return JSON.parse(body.slice(first, last + 1));
+  } catch (_) {
+    return null;
+  }
 }
 
 function extractHtml(text) {

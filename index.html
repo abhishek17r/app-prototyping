@@ -88,6 +88,85 @@
   .btn-generate.refining{background:var(--accent-2); color:#fff;}
   .btn-generate.refining:hover{background:#5a99ff;}
 
+  .step-sub{
+    color:var(--text-dimmer); font-weight:600; text-transform:none; letter-spacing:0;
+    margin-left:6px;
+  }
+  .step-sub::before{content:"— ";}
+
+  /* Analysis panel — editable insights */
+  .field{display:flex; flex-direction:column; gap:5px; margin-bottom:12px;}
+  .field label{font-size:12px; color:var(--text-dim);}
+  .field input[type="text"]{
+    background:var(--panel-2); color:#fff; border:1px solid var(--border-strong);
+    padding:9px 11px; border-radius:6px; font:inherit; font-size:13.5px;
+    outline:none; width:100%;
+  }
+  .field input[type="text"]:focus{border-color:var(--accent-2);}
+
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background:#22272e; color:#fff; padding:5px 6px 5px 10px;
+    border-radius:14px; font-size:12.5px;
+    border:1px solid var(--border-strong);
+  }
+  .chip input{
+    background:transparent; border:none; outline:none; color:#fff;
+    font:inherit; font-size:12.5px; width:auto; min-width:40px;
+    field-sizing:content;
+  }
+  .chip .chip-del{
+    width:18px; height:18px; border-radius:50%; background:#3a3a40;
+    color:#ccc; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+    line-height:1; padding:0;
+  }
+  .chip .chip-del:hover{background:#5a2222; color:#fff;}
+  .chip-add input{
+    background:var(--panel-2); border:1px dashed var(--border-strong); outline:none;
+    color:#fff; padding:7px 10px; border-radius:14px; font:inherit; font-size:12.5px;
+    width:auto; min-width:160px;
+  }
+  .chip-add input:focus{border-color:var(--accent-2); border-style:solid;}
+
+  .journey{
+    background:var(--panel-2); border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; margin-bottom:8px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .journey .j-head{display:flex; align-items:center; gap:8px;}
+  .journey .j-head input{
+    flex:1; background:transparent; border:none; outline:none; color:#fff;
+    font:inherit; font-size:14px; font-weight:600;
+  }
+  .journey .j-del{
+    width:24px; height:24px; border:1px solid var(--border-strong);
+    background:transparent; color:var(--text-dim); border-radius:50%;
+    cursor:pointer; font-size:14px; line-height:1; padding:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .journey .j-del:hover{color:var(--danger); border-color:#5a2222;}
+  .journey textarea{
+    background:#181820; color:#ddd; border:1px solid var(--border);
+    border-radius:6px; padding:8px 10px; font:inherit; font-size:12.5px;
+    line-height:1.5; outline:none; resize:vertical; min-height:60px;
+  }
+  .journey textarea:focus{border-color:var(--accent-2);}
+  .add-journey{
+    background:transparent; color:var(--accent); border:1px dashed var(--border-strong);
+    padding:8px; border-radius:6px; font-size:12.5px; font-weight:600;
+    cursor:pointer; width:100%;
+  }
+  .add-journey:hover{border-color:var(--accent);}
+
+  /* Disabled feature panel */
+  .panel.locked{opacity:.55;}
+  .panel.locked textarea, .panel.locked .ex, .panel.locked .btn-generate{
+    pointer-events:none;
+  }
+  .panel.locked .btn-generate{background:#2a2a30; color:#666;}
+
   /* Video drop zone */
   .drop{
     position:relative; border:1.5px dashed var(--border-strong); border-radius:10px;
@@ -278,7 +357,7 @@
   <div class="left">
 
     <div class="panel" id="videoPanel">
-      <h2>Source app <span style="color:var(--text-dimmer);font-weight:600;text-transform:none;letter-spacing:0;">— upload a screen recording</span></h2>
+      <h2>1 — Source app <span class="step-sub">upload a screen recording</span></h2>
       <div class="drop" id="drop">
         <input type="file" id="videoFile" accept="video/*" hidden />
         <div class="drop-empty" id="dropEmpty">
@@ -295,13 +374,41 @@
           <button type="button" class="drop-clear" id="clearVideo" title="Remove">×</button>
         </div>
       </div>
-      <div class="hint" style="margin-top:8px;">
-        The kit samples ~8 frames evenly from your video and sends them to Claude as the visual reference for the mockup.
+      <div class="generate-row" id="analyseRow" hidden>
+        <div class="hint">~8 frames will be sampled and sent to Claude.</div>
+        <button class="btn-generate" id="analyseBtn">
+          <span id="analyseLabel">🔍 Analyse</span>
+        </button>
+      </div>
+      <div class="error-box" id="analyseError"></div>
+    </div>
+
+    <div class="panel" id="analysisPanel" hidden>
+      <h2>2 — App insights <span class="step-sub">edit anything that's off</span></h2>
+      <div class="field">
+        <label for="appName">App name</label>
+        <input id="appName" type="text" placeholder="Netflix" />
+      </div>
+      <div class="field">
+        <label for="appSummary">What it does</label>
+        <input id="appSummary" type="text" placeholder="Streams movies and shows" />
+      </div>
+      <div class="field">
+        <label>Features</label>
+        <div class="chips" id="featureChips"></div>
+        <div class="chip-add">
+          <input id="newFeature" type="text" placeholder="+ Add a feature" />
+        </div>
+      </div>
+      <div class="field">
+        <label>User journeys</label>
+        <div id="journeys"></div>
+        <button type="button" class="add-journey" id="addJourneyBtn">+ Add journey</button>
       </div>
     </div>
 
-    <div class="panel">
-      <h2 id="promptHeader">Feature to prototype</h2>
+    <div class="panel" id="featurePanel">
+      <h2 id="promptHeader">3 — Feature to prototype <span class="step-sub" id="promptSub">upload &amp; analyse a video first</span></h2>
       <textarea
         id="prompt"
         placeholder="e.g. A tip selector for a food delivery app — three quick options (15%, 18%, 20%), a custom amount field, a 'No tip' link, and a 'Continue' button that goes to a confirmation screen showing the new total."
@@ -391,13 +498,17 @@
   };
 
   // ----- State -----
+  // Phases: 'idle' | 'uploaded' | 'analysing' | 'analysed' | 'generating'
+  const state = {
+    phase: "idle",
+    videoFile: null,
+    sessionId: null,
+    analysis: null,        // { appName, summary, features[], journeys[{title,steps[]}] }
+    currentHtml: null,
+    isRefining: false,
+    activeHistoryId: localStorage.getItem(STORAGE.active) || null
+  };
   let history = loadJSON(STORAGE.history, []);
-  let activeId = localStorage.getItem(STORAGE.active) || null;
-  let currentHtml = null;
-  let currentPrompt = "";
-  let isRefining = false;
-  let videoFile = null;
-  let sessionId = null;
 
   function loadJSON(k, fallback){
     try{ const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : fallback; }
@@ -458,8 +569,10 @@
     if(!file) return;
     if(!file.type.startsWith("video/")){ toast("Pick a video file", "error"); return; }
     if(file.size > 120 * 1024 * 1024){ toast("Video over 120 MB", "error"); return; }
-    videoFile = file;
-    sessionId = null; // new video = new session
+    // A new video resets the entire canvas.
+    resetCanvas();
+    state.videoFile = file;
+    state.phase = "uploaded";
     const url = URL.createObjectURL(file);
     $("videoPreview").src = url;
     $("videoName").textContent = file.name;
@@ -470,17 +583,57 @@
     }, { once: true });
     $("dropEmpty").hidden = true;
     $("dropFilled").hidden = false;
+    applyPhase();
   }
 
   function clearVideo(){
-    videoFile = null;
-    sessionId = null;
+    resetCanvas();
+    applyPhase();
+  }
+
+  function resetCanvas(){
+    // Wipe all per-session state and reset UI to phase 'idle'.
+    state.videoFile = null;
+    state.sessionId = null;
+    state.analysis = null;
+    state.currentHtml = null;
+    state.isRefining = false;
+    state.activeHistoryId = null;
+    state.phase = "idle";
+    localStorage.removeItem(STORAGE.active);
+
     fileInput.value = "";
     const v = $("videoPreview");
-    if(v.src) URL.revokeObjectURL(v.src);
-    v.src = "";
+    if(v.src){ try{ URL.revokeObjectURL(v.src); }catch(_){} v.removeAttribute("src"); }
     $("dropEmpty").hidden = false;
     $("dropFilled").hidden = true;
+
+    $("prompt").value = "";
+    $("phone").srcdoc = "";
+    $("emptyState").style.display = "flex";
+    $("metaStat").textContent = "Idle";
+    $("downloadBtn").disabled = true;
+    $("openTabBtn").disabled = true;
+
+    showError("");
+    showAnalyseError("");
+  }
+
+  function applyPhase(){
+    const phase = state.phase;
+    $("analyseRow").hidden = !(phase === "uploaded" || phase === "analysing");
+    $("analyseBtn").disabled = phase !== "uploaded";
+    $("analyseLabel").textContent = phase === "analysing" ? "🔍 Analysing…" : "🔍 Analyse";
+    $("analysisPanel").hidden = !(phase === "analysed" || phase === "generating");
+    const locked = phase !== "analysed" && phase !== "generating";
+    $("featurePanel").classList.toggle("locked", locked);
+    $("prompt").disabled = locked;
+    $("generateBtn").disabled = locked || phase === "generating";
+    $("promptSub").textContent = locked
+      ? (phase === "idle" ? "upload & analyse a video first"
+        : phase === "uploaded" ? "run analyse to enable"
+        : "analysing…")
+      : (state.isRefining ? "refine with another prompt" : "describe what you want to add");
   }
 
   function formatBytes(n){
@@ -489,9 +642,152 @@
     return (n/1024/1024).toFixed(1) + " MB";
   }
 
+  // ----- Analyse -----
+  $("analyseBtn").addEventListener("click", analyse);
+
+  async function analyse(){
+    if(state.phase !== "uploaded" || !state.videoFile) return;
+    const apiKey = localStorage.getItem(STORAGE.key) || "";
+    const model = localStorage.getItem(STORAGE.model) || "claude-sonnet-4-6";
+
+    showAnalyseError("");
+    state.phase = "analysing";
+    applyPhase();
+
+    try{
+      const fd = new FormData();
+      fd.append("video", state.videoFile);
+      fd.append("model", model);
+      if(apiKey) fd.append("apiKey", apiKey);
+
+      const res = await fetch("/api/analyse", { method: "POST", body: fd });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || "Analyse failed");
+
+      state.sessionId = data.sessionId;
+      state.analysis = normaliseAnalysis(data.analysis);
+      state.phase = "analysed";
+      renderAnalysis();
+      applyPhase();
+      $("metaStat").textContent = `Analysed · ${data.frameCount || 0} frames · ${data.model || model}`;
+      toast(`Analysed "${state.analysis.appName}"`);
+      $("prompt").focus();
+    }catch(err){
+      state.phase = "uploaded";
+      applyPhase();
+      showAnalyseError(err.message || String(err));
+    }
+  }
+
+  function normaliseAnalysis(a){
+    a = a || {};
+    return {
+      appName: a.appName || "Unknown app",
+      summary: a.summary || "",
+      features: Array.isArray(a.features) ? a.features.filter(Boolean) : [],
+      journeys: Array.isArray(a.journeys) ? a.journeys.map(j => ({
+        title: j.title || "",
+        steps: Array.isArray(j.steps) ? j.steps.filter(Boolean) : []
+      })) : []
+    };
+  }
+
+  // ----- Analysis editors -----
+  $("appName").addEventListener("input", () => {
+    if(state.analysis) state.analysis.appName = $("appName").value;
+  });
+  $("appSummary").addEventListener("input", () => {
+    if(state.analysis) state.analysis.summary = $("appSummary").value;
+  });
+  $("newFeature").addEventListener("keydown", (e) => {
+    if(e.key === "Enter" && e.target.value.trim()){
+      e.preventDefault();
+      state.analysis.features.push(e.target.value.trim());
+      e.target.value = "";
+      renderFeatures();
+    }
+  });
+  $("addJourneyBtn").addEventListener("click", () => {
+    state.analysis.journeys.push({ title: "New journey", steps: [""] });
+    renderJourneys();
+  });
+
+  function renderAnalysis(){
+    if(!state.analysis) return;
+    $("appName").value = state.analysis.appName;
+    $("appSummary").value = state.analysis.summary;
+    renderFeatures();
+    renderJourneys();
+  }
+
+  function renderFeatures(){
+    const wrap = $("featureChips");
+    wrap.innerHTML = "";
+    state.analysis.features.forEach((feat, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = feat;
+      input.size = Math.max(4, feat.length);
+      input.addEventListener("input", () => {
+        state.analysis.features[idx] = input.value;
+        input.size = Math.max(4, input.value.length);
+      });
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "chip-del";
+      del.textContent = "×";
+      del.title = "Remove";
+      del.addEventListener("click", () => {
+        state.analysis.features.splice(idx, 1);
+        renderFeatures();
+      });
+      chip.append(input, del);
+      wrap.appendChild(chip);
+    });
+  }
+
+  function renderJourneys(){
+    const wrap = $("journeys");
+    wrap.innerHTML = "";
+    state.analysis.journeys.forEach((j, idx) => {
+      const card = document.createElement("div");
+      card.className = "journey";
+      card.innerHTML = `
+        <div class="j-head">
+          <input type="text" value="" placeholder="Journey title" />
+          <button type="button" class="j-del" title="Remove">×</button>
+        </div>
+        <textarea placeholder="One step per line"></textarea>
+      `;
+      const titleInp = card.querySelector(".j-head input");
+      const stepsTa = card.querySelector("textarea");
+      titleInp.value = j.title;
+      stepsTa.value = (j.steps || []).join("\n");
+      titleInp.addEventListener("input", () => { j.title = titleInp.value; });
+      stepsTa.addEventListener("input", () => {
+        j.steps = stepsTa.value.split("\n").map(s => s.trim()).filter(Boolean);
+      });
+      card.querySelector(".j-del").addEventListener("click", () => {
+        state.analysis.journeys.splice(idx, 1);
+        renderJourneys();
+      });
+      wrap.appendChild(card);
+    });
+  }
+
+  function showAnalyseError(msg){
+    const box = $("analyseError");
+    if(!msg){ box.classList.remove("show"); box.textContent = ""; return; }
+    box.textContent = msg;
+    box.classList.add("show");
+  }
+
   // ----- Example prompts -----
   document.querySelectorAll(".ex").forEach(btn => {
     btn.addEventListener("click", () => {
+      if($("prompt").disabled) return;
       $("prompt").value = btn.dataset.prompt;
       $("prompt").focus();
     });
@@ -504,76 +800,75 @@
   });
 
   $("newBtn").addEventListener("click", () => {
-    activeId = null;
-    currentHtml = null;
-    currentPrompt = "";
-    isRefining = false;
-    sessionId = null;
-    clearVideo();
-    $("prompt").value = "";
-    $("phone").srcdoc = "";
-    $("emptyState").style.display = "flex";
-    $("downloadBtn").disabled = true;
-    $("openTabBtn").disabled = true;
-    $("metaStat").textContent = "Idle";
+    resetCanvas();
     $("generateLabel").textContent = "✨ Generate";
     $("generateBtn").classList.remove("refining");
-    $("promptHeader").textContent = "Feature to prototype";
-    $("videoPanel").hidden = false;
-    localStorage.removeItem(STORAGE.active);
+    applyPhase();
     renderHistory();
   });
 
   async function generate(){
     const prompt = $("prompt").value.trim();
     if(!prompt){ $("prompt").focus(); return; }
+    if(state.phase !== "analysed" && state.phase !== "generating"){
+      toast("Run Analyse first", "error"); return;
+    }
+    if(!state.sessionId){
+      toast("Session expired. Re-upload the video and analyse again.", "error"); return;
+    }
 
     const apiKey = localStorage.getItem(STORAGE.key) || "";
     const model = localStorage.getItem(STORAGE.model) || "claude-sonnet-4-6";
 
     showError("");
+    state.phase = "generating";
     setBusy(true);
-    $("metaStat").textContent = isRefining ? "Refining…" : "Generating…";
+    $("metaStat").textContent = state.isRefining ? "Refining…" : "Generating…";
 
     const t0 = performance.now();
     try{
-      const fd = new FormData();
-      fd.append("prompt", prompt);
-      fd.append("model", model);
-      if(apiKey) fd.append("apiKey", apiKey);
-      if(isRefining && currentHtml) fd.append("previousHtml", currentHtml);
-      if(isRefining && sessionId) fd.append("sessionId", sessionId);
-      if(!isRefining && videoFile) fd.append("video", videoFile);
+      const body = {
+        prompt, model,
+        sessionId: state.sessionId,
+        analysis: state.analysis
+      };
+      if(apiKey) body.apiKey = apiKey;
+      if(state.isRefining && state.currentHtml) body.previousHtml = state.currentHtml;
 
-      const res = await fetch("/api/generate", { method: "POST", body: fd });
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
       const data = await res.json();
       if(!res.ok){ throw new Error(data.error || "Generation failed"); }
-      if(data.sessionId) sessionId = data.sessionId;
 
       const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
-      currentHtml = data.html;
+      state.currentHtml = data.html;
+      state.phase = "analysed";
 
-      if(isRefining && activeId){
-        const item = history.find(h => h.id === activeId);
+      if(state.isRefining && state.activeHistoryId){
+        const item = history.find(h => h.id === state.activeHistoryId);
         if(item){
           item.html = data.html;
           item.prompt = (item.prompt + "\n\n→ " + prompt).slice(0, 1000);
           item.updated = Date.now();
-          if(data.sessionId) item.sessionId = data.sessionId;
+          item.sessionId = state.sessionId;
         }
       } else {
         const id = "p-" + Date.now();
         history.unshift({
           id, prompt, html: data.html, created: Date.now(),
-          sessionId: data.sessionId || null, videoName: videoFile?.name || null
+          sessionId: state.sessionId,
+          videoName: state.videoFile?.name || null,
+          appName: state.analysis?.appName || null
         });
-        activeId = id;
+        state.activeHistoryId = id;
         localStorage.setItem(STORAGE.active, id);
         history = history.slice(0, 30);
       }
       saveHistory();
 
-      currentPrompt = prompt;
       renderPreview(data.html);
       enterRefineMode();
       const tokens = data.usage ? `${data.usage.input_tokens}→${data.usage.output_tokens} tok` : "";
@@ -582,31 +877,31 @@
       $("prompt").value = "";
       renderHistory();
     }catch(err){
+      state.phase = "analysed";
       $("metaStat").textContent = "Error";
       showError(err.message || String(err));
     }finally{
       setBusy(false);
+      applyPhase();
     }
   }
 
   function setBusy(b){
     $("phoneFrame").classList.toggle("busy", b);
-    $("generateBtn").disabled = b;
     $("generateLabel").textContent = b
-      ? (isRefining ? "Refining…" : "Generating…")
-      : (isRefining ? "✨ Refine" : "✨ Generate");
+      ? (state.isRefining ? "Refining…" : "Generating…")
+      : (state.isRefining ? "✨ Refine" : "✨ Generate");
   }
 
   function enterRefineMode(){
-    isRefining = true;
-    $("promptHeader").textContent = "Refine the prototype";
+    state.isRefining = true;
+    $("promptHeader").firstChild.textContent = "3 — Refine ";
     $("prompt").placeholder = "e.g. Add a 'No tip' link below the buttons. Use a larger 'Continue' button.";
     $("generateBtn").classList.add("refining");
     $("generateLabel").textContent = "✨ Refine";
     $("downloadBtn").disabled = false;
     $("openTabBtn").disabled = false;
     $("emptyState").style.display = "none";
-    $("videoPanel").hidden = true;
   }
 
   function renderPreview(html){
@@ -630,9 +925,10 @@
     wrap.innerHTML = "";
     history.forEach(item => {
       const row = document.createElement("div");
-      row.className = "hist-item" + (item.id === activeId ? " active" : "");
+      row.className = "hist-item" + (item.id === state.activeHistoryId ? " active" : "");
       row.dataset.id = item.id;
       const firstLine = item.prompt.split("\n")[0];
+      const sub = [item.appName, relTime(item.updated || item.created)].filter(Boolean).join(" · ");
       row.innerHTML = `
         <div class="h-icon"></div>
         <div class="h-body">
@@ -642,7 +938,7 @@
         <button class="h-del" title="Delete">×</button>
       `;
       row.querySelector(".h-prompt").textContent = firstLine;
-      row.querySelector(".h-meta").textContent = relTime(item.updated || item.created);
+      row.querySelector(".h-meta").textContent = sub;
       row.addEventListener("click", (e) => {
         if(e.target.closest(".h-del")) return;
         loadHistoryItem(item.id);
@@ -650,8 +946,8 @@
       row.querySelector(".h-del").addEventListener("click", (e) => {
         e.stopPropagation();
         history = history.filter(h => h.id !== item.id);
-        if(activeId === item.id){
-          activeId = null;
+        if(state.activeHistoryId === item.id){
+          state.activeHistoryId = null;
           localStorage.removeItem(STORAGE.active);
           $("newBtn").click();
         }
@@ -665,13 +961,19 @@
   function loadHistoryItem(id){
     const item = history.find(h => h.id === id);
     if(!item) return;
-    activeId = id;
+    if(!item.sessionId){
+      toast("That session expired (server cache is 1h). Re-upload the video to refine.", "error");
+      return;
+    }
+    state.activeHistoryId = id;
     localStorage.setItem(STORAGE.active, id);
-    currentHtml = item.html;
-    currentPrompt = item.prompt;
-    sessionId = item.sessionId || null;
+    state.currentHtml = item.html;
+    state.sessionId = item.sessionId;
+    state.analysis = item.analysis || state.analysis;
+    state.phase = "analysed";
     renderPreview(item.html);
     enterRefineMode();
+    applyPhase();
     const src = item.videoName ? ` · ${item.videoName}` : "";
     $("metaStat").textContent = `Loaded · ${relTime(item.updated || item.created)}${src}`;
     renderHistory();
@@ -688,8 +990,8 @@
 
   // ----- Download / open -----
   $("downloadBtn").addEventListener("click", () => {
-    if(!currentHtml) return;
-    const blob = new Blob([currentHtml], { type: "text/html" });
+    if(!state.currentHtml) return;
+    const blob = new Blob([state.currentHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -700,8 +1002,8 @@
   });
 
   $("openTabBtn").addEventListener("click", () => {
-    if(!currentHtml) return;
-    const blob = new Blob([currentHtml], { type: "text/html" });
+    if(!state.currentHtml) return;
+    const blob = new Blob([state.currentHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
   });
@@ -718,16 +1020,7 @@
   }
 
   // ----- Boot -----
-  if(activeId){
-    const item = history.find(h => h.id === activeId);
-    if(item){
-      currentHtml = item.html;
-      currentPrompt = item.prompt;
-      renderPreview(item.html);
-      enterRefineMode();
-      $("metaStat").textContent = `Loaded · ${relTime(item.updated || item.created)}`;
-    }
-  }
+  applyPhase();
   renderHistory();
 
   // First-run: open settings if no key
